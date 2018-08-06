@@ -1,4 +1,4 @@
-This SAS program is the macro to obtain one-step estimator that was suggested by Zou and Li (2008) using SAS v9.4. 
+This SAS program is the macro to obtain one-step estimator using SCAD penalty that was suggested by Zou and Li (2008) using SAS v9.4. 
 The program include 4 macros as follows. 
 The macro "ose_scad" returns one-step estimator that was suggested by Zou and Li (2008).
 The macro "lasso_shot" returns LASSO estimator using shooting algorithm that was suggested by Fu (1998).
