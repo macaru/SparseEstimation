@@ -535,7 +535,7 @@ proc means data = fcv;
 run;
 
 proc datasets lib = work;
-  delete _cv: test: train: fcv coef:;
+  delete cvdata _cv: test: train: fcv coef:;
 run;
 
 %mend;
