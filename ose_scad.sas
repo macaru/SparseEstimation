@@ -1,4 +1,31 @@
+/*************************************************************************
+The macro "ose_scad" returns one-step estimator that was suggested by Zou and Li (2008)
+The macro "lasso_shot" returns LASSO estimator using shooting algorithm that was suggested by Fu (1998)
+The macros "diff" and "cv"returns the value of K folds cross validation for estimated coefficients
+The macro "optlam" searchs the optimal smoothing parameter based on K folds cross validation
 
+Example for usage of macro.
+The name of dataset: dat
+The name of response variable: y
+The name of predict variables : col1 - col12
+The min of smoothing parameter for grid search: 0.1
+The max of smoothing parameter for grid search: 1
+The length of grid for smoothing parameter lambda: 30 
+%optlam(dat, y, col1 - col12, 0.1, 1, 30);
+
+You could get 3 datasets optcoef, optlambda and seqcoef
+The dataset optcoef is estimated coefficient
+The dataset seqcoef shows coefficients when lambda tends to large
+The dataset optlambda shows the value of K folds CV when lambda tends to large
+
+[References]
+[1] Fu (1998). Penalized regression: The bridge versus the lasso. 
+   Journal of Computational and Graphical Statistics 7: 397 -416.
+[2] Zou and Li (2008). One-step sparse estimates in nonconacve penalized likelihood models. 
+   The Annals of Statistics 36: 267-288.
+
+Last changed: 06 AUG 2018 by Masaru Kanba
+*************************************************************************/
 
 %macro ose_scad(dat, res, xvar, lambda, out);
 
@@ -11,7 +38,6 @@ data _null_;
   nl =  2 * &n. * &lambda.;
   call symputx("nl", nl);
 run;
-/*%put &nl.;*/
 
 /***** MLE *****/
 ods output ParameterEstimates = _parm OverallANOVA = var PredictedValues = _yhat;
@@ -24,7 +50,6 @@ data _null_;
   set var;
   if (source = "Error") then call symputx("sig", ms);
 run;
-/*%put &sig.;*/
 
 /*****************
     Step 1a. 
@@ -108,9 +133,6 @@ data _p0;
 run;
 
 %put U: &xu. # V: &xv. ;
-/*%put "num of U:" &cu.;*/
-/*%put "num of V:" &cv.;*/
-
 
 %if &cu. ^= 0 %then %do;
 data xu_s;
@@ -384,12 +406,9 @@ data new_beta;
   if ( (&cflg. - cflg) < 0) then difflg = 2;
   call symputx("cflg", cflg);
   call symputx("difflg", difflg);
-/*  keep bhat1 - bhat&m.;*/
 run;
 
 %let flg = 2;
-/*%put &cflg.;*/
-/*%put cflg:  &cflg.  # difflg:  &difflg.;*/
 
 %end;
 
@@ -454,26 +473,24 @@ run;
 
 %macro cv(dat, res, xvar, K, lam, outcv);
 
-data _null_;
-  set &dat. end = end;
-  array x{*} &xvar.;
-  if (end = 1) then do;
-    call symputx("_n", _n_);
-  end;
+data cvdata;
+  set &dat.;
+  s = rand('UNIFORM');
 run;
+
+proc sort data = cvdata; by s; run;
+
 
 data _null_;
   set &dat. end = end;
   if (end = 1) then call symputx("_n", _n_);
 run;
 
-/*%put &n.;*/
-
 %do i = 1 %to &K.;
 
 %if (&i. < &K.) %then %do;
 data train&i. test&i.;
-  set &dat.;
+  set cvdata;
   low = (&i. - 1) * ceil(&_n. / &K. ) + 1;
   high = (&i. ) * ceil(&_n. / &K. );
   if (low <= _n_ <= high) then output test&i.;
@@ -487,7 +504,7 @@ run;
 
 %if (&i. = &K.) %then %do;
 data train&i. test&i.;
-  set &dat.;
+  set cvdata;
   low = (&i. - 1) * ceil(&_n. / &K. ) + 1;
   if (low <= _n_ <= &_n.) then output test&i.;
   if (low > _n_  or _n_ > &_n.) then output train&i.;
